@@ -1,0 +1,23 @@
+# dependências e build
+node_modules
+dist
+*.tsbuildinfo
+.vercel
+
+# variáveis de ambiente (nunca versionar)
+.env
+.env.*
+!.env.example
+
+# logs e sistema
+*.log
+.DS_Store
+Thumbs.db
+.idea
+.vscode/*
+!.vscode/extensions.json
+
+# testes locais
+test-results
+playwright-report
+screenshots
