@@ -34,6 +34,7 @@ grant execute on function public.is_admin() to anon, authenticated;
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
+set search_path = ''
 as $$
 begin
   new.updated_at = now();
@@ -108,6 +109,7 @@ create table if not exists public.leads (
 
 create index if not exists leads_status_idx on public.leads (status);
 create index if not exists leads_created_at_idx on public.leads (created_at desc);
+create index if not exists leads_motorcycle_idx on public.leads (motorcycle_id);
 
 -- ---------------------------------------------------------------------
 -- faq
@@ -183,15 +185,15 @@ create policy "motorcycles_public_read" on public.motorcycles
 
 drop policy if exists "motorcycles_admin_insert" on public.motorcycles;
 create policy "motorcycles_admin_insert" on public.motorcycles
-  for insert to authenticated with check (public.is_admin());
+  for insert to authenticated with check ((select public.is_admin()));
 
 drop policy if exists "motorcycles_admin_update" on public.motorcycles;
 create policy "motorcycles_admin_update" on public.motorcycles
-  for update to authenticated using (public.is_admin()) with check (public.is_admin());
+  for update to authenticated using ((select public.is_admin())) with check ((select public.is_admin()));
 
 drop policy if exists "motorcycles_admin_delete" on public.motorcycles;
 create policy "motorcycles_admin_delete" on public.motorcycles
-  for delete to authenticated using (public.is_admin());
+  for delete to authenticated using ((select public.is_admin()));
 
 -- motorcycle_images: mesma regra.
 drop policy if exists "images_public_read" on public.motorcycle_images;
@@ -200,15 +202,15 @@ create policy "images_public_read" on public.motorcycle_images
 
 drop policy if exists "images_admin_insert" on public.motorcycle_images;
 create policy "images_admin_insert" on public.motorcycle_images
-  for insert to authenticated with check (public.is_admin());
+  for insert to authenticated with check ((select public.is_admin()));
 
 drop policy if exists "images_admin_update" on public.motorcycle_images;
 create policy "images_admin_update" on public.motorcycle_images
-  for update to authenticated using (public.is_admin()) with check (public.is_admin());
+  for update to authenticated using ((select public.is_admin())) with check ((select public.is_admin()));
 
 drop policy if exists "images_admin_delete" on public.motorcycle_images;
 create policy "images_admin_delete" on public.motorcycle_images
-  for delete to authenticated using (public.is_admin());
+  for delete to authenticated using ((select public.is_admin()));
 
 -- leads: qualquer visitante pode ENVIAR (sempre com status "new");
 -- somente administradores podem ler, alterar ou excluir.
@@ -218,32 +220,32 @@ create policy "leads_public_insert" on public.leads
 
 drop policy if exists "leads_admin_select" on public.leads;
 create policy "leads_admin_select" on public.leads
-  for select to authenticated using (public.is_admin());
+  for select to authenticated using ((select public.is_admin()));
 
 drop policy if exists "leads_admin_update" on public.leads;
 create policy "leads_admin_update" on public.leads
-  for update to authenticated using (public.is_admin()) with check (public.is_admin());
+  for update to authenticated using ((select public.is_admin())) with check ((select public.is_admin()));
 
 drop policy if exists "leads_admin_delete" on public.leads;
 create policy "leads_admin_delete" on public.leads
-  for delete to authenticated using (public.is_admin());
+  for delete to authenticated using ((select public.is_admin()));
 
 -- faq: público vê apenas perguntas ativas; administradores veem e editam tudo.
 drop policy if exists "faq_public_read" on public.faq;
 create policy "faq_public_read" on public.faq
-  for select to anon, authenticated using (active or public.is_admin());
+  for select to anon, authenticated using (active or (select public.is_admin()));
 
 drop policy if exists "faq_admin_insert" on public.faq;
 create policy "faq_admin_insert" on public.faq
-  for insert to authenticated with check (public.is_admin());
+  for insert to authenticated with check ((select public.is_admin()));
 
 drop policy if exists "faq_admin_update" on public.faq;
 create policy "faq_admin_update" on public.faq
-  for update to authenticated using (public.is_admin()) with check (public.is_admin());
+  for update to authenticated using ((select public.is_admin())) with check ((select public.is_admin()));
 
 drop policy if exists "faq_admin_delete" on public.faq;
 create policy "faq_admin_delete" on public.faq
-  for delete to authenticated using (public.is_admin());
+  for delete to authenticated using ((select public.is_admin()));
 
 -- site_settings: leitura pública, edição só de administradores.
 drop policy if exists "settings_public_read" on public.site_settings;
@@ -252,7 +254,7 @@ create policy "settings_public_read" on public.site_settings
 
 drop policy if exists "settings_admin_update" on public.site_settings;
 create policy "settings_admin_update" on public.site_settings
-  for update to authenticated using (public.is_admin()) with check (public.is_admin());
+  for update to authenticated using ((select public.is_admin())) with check ((select public.is_admin()));
 
 -- Permissões de tabela (o RLS acima é quem decide linha a linha).
 grant select on public.motorcycles, public.motorcycle_images, public.faq, public.site_settings to anon, authenticated;
@@ -279,15 +281,15 @@ create policy "media_public_read" on storage.objects
 
 drop policy if exists "media_admin_insert" on storage.objects;
 create policy "media_admin_insert" on storage.objects
-  for insert to authenticated with check (bucket_id = 'media' and public.is_admin());
+  for insert to authenticated with check (bucket_id = 'media' and (select public.is_admin()));
 
 drop policy if exists "media_admin_update" on storage.objects;
 create policy "media_admin_update" on storage.objects
-  for update to authenticated using (bucket_id = 'media' and public.is_admin());
+  for update to authenticated using (bucket_id = 'media' and (select public.is_admin()));
 
 drop policy if exists "media_admin_delete" on storage.objects;
 create policy "media_admin_delete" on storage.objects
-  for delete to authenticated using (bucket_id = 'media' and public.is_admin());
+  for delete to authenticated using (bucket_id = 'media' and (select public.is_admin()));
 
 -- =====================================================================
 -- PRIMEIRO ADMINISTRADOR
