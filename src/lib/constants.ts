@@ -12,6 +12,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   hero_image_url: null,
   description:
     'Compra, venda e aluguel de motocicletas com intenção de compra. Atendimento online em João Pessoa e Santa Rita — PB.',
+  maintenance_mode: false,
 }
 
 export const RESPONSIBLE_NAME = 'Davanildo Carneiro'

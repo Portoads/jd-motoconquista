@@ -5,6 +5,8 @@ import { Footer } from './Footer'
 import { WhatsAppIcon } from '@/components/icons'
 import { Spinner } from '@/components/ui/Feedback'
 import { useSettings } from '@/context/SettingsContext'
+import { useAuth } from '@/context/AuthContext'
+import { Maintenance } from './Maintenance'
 import { DEFAULT_WA_MESSAGE, whatsappLink } from '@/lib/whatsapp'
 
 export function ScrollToTop() {
@@ -23,9 +25,22 @@ export function ScrollToTop() {
 }
 
 export function PublicLayout() {
-  const { settings } = useSettings()
+  const { settings, loaded } = useSettings()
+  const { isAdmin, loading: authLoading } = useAuth()
+
+  // Espera as configurações para não mostrar o site por um instante quando ele está em manutenção.
+  if (!loaded || (settings.maintenance_mode && authLoading)) return <Spinner className="min-h-dvh" />
+  // Em manutenção, só administradores logados veem o site (para conferir antes de religar).
+  if (settings.maintenance_mode && !isAdmin) return <Maintenance />
+
   return (
     <div className="flex min-h-dvh flex-col overflow-x-clip">
+      {settings.maintenance_mode && (
+        <div className="bg-brand px-4 py-2 text-center text-sm font-medium text-white">
+          Site em manutenção: só você (administrador) está vendo esta página.{' '}
+          <a href="/admin/configuracoes" className="underline underline-offset-2">Religar o site</a>
+        </div>
+      )}
       <a href="#conteudo" className="sr-only z-[100] rounded bg-white px-4 py-2 text-ink focus:not-sr-only focus:fixed focus:top-2 focus:left-2">
         Pular para o conteúdo
       </a>

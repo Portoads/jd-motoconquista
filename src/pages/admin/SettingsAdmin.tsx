@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { ImagePlus, Save, Trash2 } from 'lucide-react'
+import { ImagePlus, Power, Save, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Field, Input, Textarea } from '@/components/ui/Field'
+import { ConfirmDialog } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
 import { useSettings } from '@/context/SettingsContext'
 import { fetchSettings, removeMedia, updateSettings, uploadMedia } from '@/lib/api'
@@ -30,10 +31,14 @@ export default function SettingsAdmin() {
   const [uploading, setUploading] = useState<'logo_url' | 'hero_image_url' | null>(null)
   const logoRef = useRef<HTMLInputElement>(null)
   const heroRef = useRef<HTMLInputElement>(null)
+  const [maintenance, setMaintenance] = useState(false)
+  const [confirmOff, setConfirmOff] = useState(false)
+  const [toggling, setToggling] = useState(false)
 
   useEffect(() => {
     fetchSettings()
-      .then((s) =>
+      .then((s) => {
+        setMaintenance(!!s?.maintenance_mode)
         setForm({
           company_name: s?.company_name ?? '',
           whatsapp: formatPhone(s?.whatsapp) || '',
@@ -43,8 +48,8 @@ export default function SettingsAdmin() {
           description: s?.description ?? '',
           logo_url: s?.logo_url ?? null,
           hero_image_url: s?.hero_image_url ?? null,
-        }),
-      )
+        })
+      })
       .catch((e) => toast(e.message, 'error'))
   }, [toast])
 
@@ -80,6 +85,21 @@ export default function SettingsAdmin() {
       toast(err instanceof Error ? err.message : 'Erro ao salvar.', 'error')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function setMaintenanceMode(on: boolean) {
+    setToggling(true)
+    try {
+      const saved = await updateSettings({ maintenance_mode: on })
+      setMaintenance(saved.maintenance_mode)
+      setSettings(saved)
+      setConfirmOff(false)
+      toast(on ? 'Site desligado. Os visitantes veem a página de manutenção.' : 'Site ligado novamente.')
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao alterar.', 'error')
+    } finally {
+      setToggling(false)
     }
   }
 
@@ -124,6 +144,39 @@ export default function SettingsAdmin() {
         title="Configurações"
         description="Informações da empresa exibidas em todo o site."
         actions={<Button type="submit" loading={saving} icon={<Save className="h-4 w-4" />}>Salvar</Button>}
+      />
+      <section className={`mb-6 flex flex-col gap-4 rounded-lg border p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6 ${maintenance ? 'border-brand/40 bg-brand-50' : 'border-graphite-200 bg-white'}`}>
+        <div className="flex items-start gap-3">
+          <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${maintenance ? 'bg-brand' : 'bg-emerald-500'}`} aria-hidden />
+          <div>
+            <h2 className="font-semibold">{maintenance ? 'Site desligado (em manutenção)' : 'Site ligado'}</h2>
+            <p className="mt-1 text-sm text-graphite-600">
+              {maintenance
+                ? 'Os visitantes veem uma página de manutenção com o seu WhatsApp. Só você, logado, vê o site normal.'
+                : 'O site está no ar para todos. Desligue para mostrar uma página de manutenção; o painel continua funcionando.'}
+            </p>
+          </div>
+        </div>
+        <Button
+          type="button"
+          variant={maintenance ? 'primary' : 'danger'}
+          loading={toggling}
+          onClick={() => (maintenance ? setMaintenanceMode(false) : setConfirmOff(true))}
+          icon={<Power className="h-4 w-4" />}
+          className="shrink-0"
+        >
+          {maintenance ? 'Ligar o site' : 'Desligar o site'}
+        </Button>
+      </section>
+      <ConfirmDialog
+        open={confirmOff}
+        title="Desligar o site?"
+        message="Os visitantes vão ver uma página de manutenção até você voltar aqui e clicar em Ligar o site."
+        confirmLabel="Desligar"
+        danger
+        loading={toggling}
+        onConfirm={() => setMaintenanceMode(true)}
+        onClose={() => setConfirmOff(false)}
       />
       <div className="grid gap-6 xl:grid-cols-[1.3fr_1fr]">
         <section className="rounded-lg border border-graphite-200 bg-white p-5 sm:p-6">

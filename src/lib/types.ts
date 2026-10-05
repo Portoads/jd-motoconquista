@@ -68,5 +68,6 @@ export interface SiteSettings {
   logo_url: string | null
   hero_image_url: string | null
   description: string | null
+  maintenance_mode: boolean
   updated_at?: string
 }
